@@ -75,7 +75,36 @@ function bar(name, count, total) {
 }
 
 function topFixture(row) {
-  return `<div class="fixture-row"><strong>${escapeHtml(row.fixture)}</strong><div>${escapeHtml(row.reason)}<div class="reason-text">${escapeHtml(row.confidence)} confidence, C${escapeHtml(row.circuit)}, ${row.windows} windows</div></div><strong>${Math.round(row.triage * 100)}</strong></div>`;
+  return `<div class="fixture-row"><strong>${escapeHtml(row.fixture)}</strong><div>${escapeHtml(row.reason)}<div class="reason-text">${escapeHtml(row.diagnosis)} ${escapeHtml(row.confidence)} confidence, C${escapeHtml(row.circuit)}, ${row.windows} windows</div></div><strong>${Math.round(row.triage * 100)}</strong></div>`;
+}
+
+function signed(value, unit) {
+  const rounded = formatNumber(value, 1);
+  return `${value > 0 ? "+" : ""}${rounded}${unit}`;
+}
+
+function formatNumber(value, digits = 1) {
+  return Number(value).toLocaleString("en-US", { maximumFractionDigits: digits });
+}
+
+function buildDiagnosis({ status, reason, triage, led, driver, confidence, windows, spanMonths, staleFrac, boostLevel, envelope, levelDrift, envelopeDrift }) {
+  const scoreText = `triage ${Math.round(triage * 100)}, LED ${Math.round(led * 100)}, driver ${Math.round(driver * 100)}`;
+  const evidenceText = `${confidence.toLowerCase()} confidence from ${windows} batch windows over ${spanMonths.toFixed(2)} months; stale fraction ${Math.round(staleFrac * 100)}%.`;
+  const measurements = `Boost level ${formatNumber(boostLevel)} mV, envelope ${formatNumber(envelope)} mV, level drift ${signed(levelDrift, " mV/month")}, envelope drift ${signed(envelopeDrift, " mV/month")}.`;
+
+  if (status === "Working normally") {
+    return `No repair signal: both LED-side and driver-side stress are low (${scoreText}). ${measurements} ${evidenceText}`;
+  }
+  if (status === "Monitor") {
+    return `Not urgent yet: one signal is present, but the combined score stays below the watchlist threshold (${scoreText}). ${measurements} ${evidenceText}`;
+  }
+  if (reason === "LED and driver stress") {
+    return `Likely electrical degradation: both the LED-side voltage signal and driver envelope signal are elevated (${scoreText}). ${measurements} ${evidenceText}`;
+  }
+  if (reason === "LED voltage drift") {
+    return `Likely LED-side stress: the LED score is higher than the driver score, meaning boost-voltage level or level drift is the main concern (${scoreText}). ${measurements} ${evidenceText}`;
+  }
+  return `Likely driver-side instability: the driver score is higher than the LED score, meaning envelope magnitude or envelope drift is the main concern (${scoreText}). ${measurements} ${evidenceText}`;
 }
 
 async function loadRows() {
@@ -99,7 +128,14 @@ async function loadRows() {
     else if (Math.abs(led - driver) <= 0.12 && triage >= 0.65) reason = "LED and driver stress";
 
     const confidence = row.confidence_tier || "Low";
-    return {
+    const spanMonths = Number(num(row, "span_months").toFixed(2));
+    const boostLevel = Number(num(feat, "F1_level_mV").toFixed(1));
+    const envelope = Number(num(feat, "F2a_mag_mV").toFixed(1));
+    const levelDrift = Number(num(feat, "F3_slope_mV_per_month").toFixed(2));
+    const envelopeDrift = Number(num(feat, "F4_envelope_slope_mV_per_month").toFixed(2));
+    const staleFrac = Number(num(feat, "stale_frac").toFixed(3));
+    const windows = Math.round(num(row, "n_windows"));
+    const record = {
       fixture: row.fixture_id,
       circuit: row.circuit,
       status,
@@ -110,13 +146,31 @@ async function loadRows() {
       led: Number(led.toFixed(4)),
       driver: Number(driver.toFixed(4)),
       costress: Number(num(row, "S_costress").toFixed(4)),
-      windows: Math.round(num(row, "n_windows")),
-      span_months: Number(num(row, "span_months").toFixed(2)),
-      boost_level_mv: Number(num(feat, "F1_level_mV").toFixed(1)),
-      envelope_mv: Number(num(feat, "F2a_mag_mV").toFixed(1)),
-      level_drift_mv_month: Number(num(feat, "F3_slope_mV_per_month").toFixed(2)),
-      envelope_drift_mv_month: Number(num(feat, "F4_envelope_slope_mV_per_month").toFixed(2)),
-      stale_frac: Number(num(feat, "stale_frac").toFixed(3)),
+      windows,
+      span_months: spanMonths,
+      boost_level_mv: boostLevel,
+      envelope_mv: envelope,
+      level_drift_mv_month: levelDrift,
+      envelope_drift_mv_month: envelopeDrift,
+      stale_frac: staleFrac,
+    };
+    return {
+      ...record,
+      diagnosis: buildDiagnosis({
+        status,
+        reason,
+        triage,
+        led,
+        driver,
+        confidence,
+        windows,
+        spanMonths,
+        staleFrac,
+        boostLevel,
+        envelope,
+        levelDrift,
+        envelopeDrift,
+      }),
     };
   });
 }
@@ -150,7 +204,7 @@ function render(rows) {
   <title>LED Maintenance Triage Dashboard</title>
   <style>
     :root{color-scheme:light;--ink:#1b2430;--muted:#5a6675;--line:#d9e0e7;--panel:#fff;--page:#f5f7fa;--repair:#b83232;--watch:#b56b12;--monitor:#256f7f;--healthy:#237047;--accent:#315f9c;--soft-red:#fff0ed;--soft-amber:#fff5df;--soft-blue:#eaf5f8;--soft-green:#eaf7ef}
-    *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.45}header{background:#132235;color:white;padding:26px 32px 22px;border-bottom:5px solid #d7a03a}h1,h2,h3,p{margin:0}h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:0}header p{max-width:1040px;color:#d8e1ec;margin-top:8px;font-size:16px}main{max-width:1400px;margin:0 auto;padding:24px 24px 42px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.pill{border:1px solid rgba(255,255,255,.26);color:#eef5ff;border-radius:999px;padding:7px 11px;font-size:13px;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(20,30,45,.06)}.metric{min-height:150px}.label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase}.value{font-size:44px;font-weight:800;margin-top:6px;line-height:1}.caption{color:var(--muted);margin-top:10px;font-size:14px}.repair{border-top:5px solid var(--repair);background:var(--soft-red)}.watch{border-top:5px solid var(--watch);background:var(--soft-amber)}.monitor{border-top:5px solid var(--monitor);background:var(--soft-blue)}.healthy{border-top:5px solid var(--healthy);background:var(--soft-green)}.section{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:16px;margin-top:16px}h2{font-size:20px;margin-bottom:14px}.bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:190px 1fr 64px;align-items:center;gap:12px;font-size:14px}.bar-track{height:14px;background:#edf1f5;border-radius:999px;overflow:hidden;border:1px solid #dde4eb}.bar-fill{height:100%;background:var(--accent);border-radius:999px}.reason .bar-fill{background:#8f5634}.confidence .bar-fill{background:#5d7899}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:#334155;font-size:12px;text-transform:uppercase;background:#f4f7fa;position:sticky;top:0;z-index:1}.table-wrap{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:8px}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}.status.repair-priority{color:var(--repair);background:#f8d9d3}.status.watchlist{color:var(--watch);background:#f8e4ba}.status.monitoring{color:var(--monitor);background:#d8edf2}.status.working-normally{color:var(--healthy);background:#d6efdf}.score{display:grid;grid-template-columns:52px 90px;align-items:center;gap:8px}.spark{height:8px;background:#e3e8ee;border-radius:999px;overflow:hidden}.spark span{display:block;height:100%;background:#315f9c}.controls{display:grid;grid-template-columns:1.4fr repeat(3,minmax(150px,.5fr));gap:10px;margin-bottom:12px}input,select{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:white;color:var(--ink);font:inherit}.small{color:var(--muted);font-size:13px}.top-list{display:grid;gap:9px}.fixture-row{display:grid;grid-template-columns:98px 1fr 58px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.fixture-row:last-child{border-bottom:0}.reason-text{color:var(--muted);font-size:13px;margin-top:2px}.note{margin-top:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:5px solid #315f9c;border-radius:8px;color:#394657}.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section,.split{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}@media(max-width:650px){header{padding:22px 18px}main{padding:16px}.grid,.controls{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr;gap:6px}th:nth-child(4),td:nth-child(4),th:nth-child(8),td:nth-child(8){display:none}}
+    *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.45}header{background:#132235;color:white;padding:26px 32px 22px;border-bottom:5px solid #d7a03a}h1,h2,h3,p{margin:0}h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:0}header p{max-width:1040px;color:#d8e1ec;margin-top:8px;font-size:16px}main{max-width:1400px;margin:0 auto;padding:24px 24px 42px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.pill{border:1px solid rgba(255,255,255,.26);color:#eef5ff;border-radius:999px;padding:7px 11px;font-size:13px;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(20,30,45,.06)}.metric{min-height:150px}.label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase}.value{font-size:44px;font-weight:800;margin-top:6px;line-height:1}.caption{color:var(--muted);margin-top:10px;font-size:14px}.repair{border-top:5px solid var(--repair);background:var(--soft-red)}.watch{border-top:5px solid var(--watch);background:var(--soft-amber)}.monitor{border-top:5px solid var(--monitor);background:var(--soft-blue)}.healthy{border-top:5px solid var(--healthy);background:var(--soft-green)}.section{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:16px;margin-top:16px}h2{font-size:20px;margin-bottom:14px}.bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:190px 1fr 64px;align-items:center;gap:12px;font-size:14px}.bar-track{height:14px;background:#edf1f5;border-radius:999px;overflow:hidden;border:1px solid #dde4eb}.bar-fill{height:100%;background:var(--accent);border-radius:999px}.reason .bar-fill{background:#8f5634}.confidence .bar-fill{background:#5d7899}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:#334155;font-size:12px;text-transform:uppercase;background:#f4f7fa;position:sticky;top:0;z-index:1}.table-wrap{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:8px}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}.status.repair-priority{color:var(--repair);background:#f8d9d3}.status.watchlist{color:var(--watch);background:#f8e4ba}.status.monitoring{color:var(--monitor);background:#d8edf2}.status.working-normally{color:var(--healthy);background:#d6efdf}.score{display:grid;grid-template-columns:52px 90px;align-items:center;gap:8px}.spark{height:8px;background:#e3e8ee;border-radius:999px;overflow:hidden}.spark span{display:block;height:100%;background:#315f9c}.controls{display:grid;grid-template-columns:1.4fr repeat(3,minmax(150px,.5fr));gap:10px;margin-bottom:12px}input,select{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:white;color:var(--ink);font:inherit}.small{color:var(--muted);font-size:13px}.top-list{display:grid;gap:9px}.fixture-row{display:grid;grid-template-columns:98px 1fr 58px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.fixture-row:last-child{border-bottom:0}.reason-text{color:var(--muted);font-size:13px;margin-top:2px}.diagnosis{min-width:360px;max-width:620px}.diagnosis strong{display:block;margin-bottom:4px}.diagnosis-text{color:#334155;font-size:13px;line-height:1.4}.data-chip{display:inline-flex;margin-top:7px;margin-right:6px;padding:3px 7px;border:1px solid #d7dde5;border-radius:999px;background:#f7f9fb;color:#536173;font-size:12px;white-space:nowrap}.note{margin-top:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:5px solid #315f9c;border-radius:8px;color:#394657}.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section,.split{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}@media(max-width:650px){header{padding:22px 18px}main{padding:16px}.grid,.controls{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr;gap:6px}.diagnosis{min-width:280px}th:nth-child(4),td:nth-child(4),th:nth-child(8),td:nth-child(8){display:none}}
   </style>
 </head>
 <body>
@@ -174,14 +228,16 @@ function render(rows) {
       <article class="card"><h2>Top repair candidates</h2><div class="top-list">${top10.map(topFixture).join("")}</div></article>
       <article class="card"><h2>How to read this</h2><p class="small">Repair priority means the fixture sits in the high end of the circuit-normalized triage score. Working normally means both LED-side and driver-side stress are low. Low-confidence rows should be inspected with extra caution because missing operational telemetry can hide or exaggerate risk.</p><div class="note">Missing telemetry that would make this production-grade: input current, true LED junction temperature, alarm/failsafe streams, RF health, runtime counters, and maintenance/failure labels.</div></article>
     </section>
-    <section class="card" style="margin-top:16px"><h2>Fixture table</h2><div class="controls"><input id="search" type="search" placeholder="Search fixture, reason, or status"><select id="statusFilter" aria-label="Status filter"><option value="all">All statuses</option><option>Repair priority</option><option>Watchlist</option><option>Monitor</option><option>Working normally</option></select><select id="circuitFilter" aria-label="Circuit filter"><option value="all">All circuits</option><option value="1">Circuit 1</option><option value="2">Circuit 2</option></select><select id="confidenceFilter" aria-label="Confidence filter"><option value="all">All confidence</option><option>Medium</option><option>Low</option></select></div><div class="table-wrap"><table><thead><tr><th>Fixture</th><th>Status</th><th>Reason</th><th>Circuit</th><th>Triage</th><th>LED</th><th>Driver</th><th>Evidence</th><th>Boost mV</th><th>Envelope mV</th></tr></thead><tbody id="fixtureRows"></tbody></table></div></section>
+    <section class="card" style="margin-top:16px"><h2>Fixture table</h2><div class="controls"><input id="search" type="search" placeholder="Search fixture, reason, diagnosis, or status"><select id="statusFilter" aria-label="Status filter"><option value="all">All statuses</option><option>Repair priority</option><option>Watchlist</option><option>Monitor</option><option>Working normally</option></select><select id="circuitFilter" aria-label="Circuit filter"><option value="all">All circuits</option><option value="1">Circuit 1</option><option value="2">Circuit 2</option></select><select id="confidenceFilter" aria-label="Confidence filter"><option value="all">All confidence</option><option>Medium</option><option>Low</option></select></div><div class="table-wrap"><table><thead><tr><th>Fixture</th><th>Status</th><th>Why this lamp is flagged</th><th>Circuit</th><th>Triage</th><th>LED</th><th>Driver</th><th>Evidence</th><th>Boost mV</th><th>Envelope mV</th></tr></thead><tbody id="fixtureRows"></tbody></table></div></section>
   </main>
   <script>
     const fixtures=${JSON.stringify(rows)};
     const tbody=document.getElementById('fixtureRows'),search=document.getElementById('search'),statusFilter=document.getElementById('statusFilter'),circuitFilter=document.getElementById('circuitFilter'),confidenceFilter=document.getElementById('confidenceFilter');
     function cls(status){return status.toLowerCase().replace(/ /g,'-').replace('monitor','monitoring')}
     function score(value){const p=Math.round(value*100);return '<div class="score"><span>'+p+'</span><div class="spark"><span style="width:'+p+'%"></span></div></div>'}
-    function renderTable(){const q=search.value.trim().toLowerCase(),status=statusFilter.value,circuit=circuitFilter.value,confidence=confidenceFilter.value;const visible=fixtures.filter(row=>{const haystack=(row.fixture+' '+row.status+' '+row.reason+' '+row.confidence).toLowerCase();return(status==='all'||row.status===status)&&(circuit==='all'||row.circuit===circuit)&&(confidence==='all'||row.confidence===confidence)&&(!q||haystack.includes(q))});tbody.innerHTML=visible.map(row=>'<tr><td><strong>'+row.fixture+'</strong></td><td><span class="status '+cls(row.status)+'">'+row.status+'</span></td><td>'+row.reason+'</td><td>C'+row.circuit+'</td><td>'+score(row.triage)+'</td><td>'+score(row.led)+'</td><td>'+score(row.driver)+'</td><td>'+row.confidence+'<div class="small">'+row.windows+' windows</div></td><td>'+row.boost_level_mv.toLocaleString()+'</td><td>'+row.envelope_mv.toLocaleString()+'</td></tr>').join('')}
+    function fmt(value){return value.toLocaleString('en-US',{maximumFractionDigits:1})}
+    function signed(value,unit){return (value>0?'+':'')+fmt(value)+unit}
+    function renderTable(){const q=search.value.trim().toLowerCase(),status=statusFilter.value,circuit=circuitFilter.value,confidence=confidenceFilter.value;const visible=fixtures.filter(row=>{const haystack=(row.fixture+' '+row.status+' '+row.reason+' '+row.diagnosis+' '+row.confidence).toLowerCase();return(status==='all'||row.status===status)&&(circuit==='all'||row.circuit===circuit)&&(confidence==='all'||row.confidence===confidence)&&(!q||haystack.includes(q))});tbody.innerHTML=visible.map(row=>'<tr><td><strong>'+row.fixture+'</strong></td><td><span class="status '+cls(row.status)+'">'+row.status+'</span></td><td class="diagnosis"><strong>'+row.reason+'</strong><div class="diagnosis-text">'+row.diagnosis+'</div><span class="data-chip">Level drift '+signed(row.level_drift_mv_month,' mV/mo')+'</span><span class="data-chip">Envelope drift '+signed(row.envelope_drift_mv_month,' mV/mo')+'</span><span class="data-chip">Stale '+Math.round(row.stale_frac*100)+'%</span></td><td>C'+row.circuit+'</td><td>'+score(row.triage)+'</td><td>'+score(row.led)+'</td><td>'+score(row.driver)+'</td><td>'+row.confidence+'<div class="small">'+row.windows+' windows</div></td><td>'+fmt(row.boost_level_mv)+'</td><td>'+fmt(row.envelope_mv)+'</td></tr>').join('')}
     [search,statusFilter,circuitFilter,confidenceFilter].forEach(el=>el.addEventListener('input',renderTable));renderTable();
   </script>
 </body>
