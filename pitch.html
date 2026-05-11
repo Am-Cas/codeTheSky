@@ -429,34 +429,39 @@
 
   <main>
     <section class="slide" id="problem">
-      <article class="slide-card">
-        <div class="hero">
-          <p class="kicker">Case Study 2 - LED Degradation</p>
-          <h1>From reactive light replacement to physics-grounded maintenance triage</h1>
-        </div>
-      </article>
-    </section>
+  <article class="slide-card">
+    <div class="hero">
+      <p class="kicker">Case Study 2 – LED Degradation</p>
+      <h1>Reactive replacement → Physics‑grounded preventive maintenance</h1>
+      <p>Current reactive maintenance causes safety risk, unplanned downtime, and unnecessary cost.</p>
+    </div>
+    <ul class="pill-row">
+      <li>❌ Reactive: replace lights after failure</li>
+      <li>✅ Goal: score each fixture’s degradation before it fails</li>
+    </ul>
+  </article>
+</section>
 
     <section class="slide" id="data">
-      <article class="slide-card">
-        <div class="content">
-          <p class="kicker">Data reality</p>
-          <h2>The strongest signal is electrical. Several tempting signals are unusable.</h2>
-          <div class="two-col">
-            <div>
-              <div class="grid">
-                <div class="tile truth">
-                  <h3>Primary dataset</h3>
-                  <p>YYC: 170 fixtures, two circuits, about 2M events, 53 metrics, mid-2025 to early 2026.</p>
-                </div>
-                <div class="tile method">
-                  <h3>Usable core</h3>
-                  <p><strong>boostVoltage</strong>, boost min/max envelope, stale/lastSeen, and limited environmental context.</p>
-                </div>
-                <div class="tile warning">
-                  <h3>Rejected signals</h3>
-                  <p>LED temperatures are sentinel-flat at 25 C. Heater and magnetic metrics are sentinels. Thermal differential collapses.</p>
-                </div>
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Data reality</p>
+      <h2>What we have</h2>
+      <ul>
+        <li>Electrical telemetry: boostVoltage, stale, lastSeen, limited env (humidity, pressure)</li>
+        <li>No photometric output, no runtime counters, no failure labels</li>
+        <li>Many signals are flat or sentinel‑filled (LED temps, heaters, magnetic)</li>
+      </ul>
+      <h2>What we lack</h2>
+      <ul>
+        <li>Input current (CCR assumption)</li>
+        <li>LED junction temperature</li>
+        <li>Maintenance / failure history</li>
+        <li>Optical performance data</li>
+      </ul>
+    </div>
+  </article>
+</section>
               </div>
               <div class="score-strip">
                 <div class="score"><strong>170</strong>fixtures</div>
@@ -481,13 +486,45 @@
     </section>
 
     <section class="slide" id="indicator">
-      <article class="slide-card">
-        <div class="content">
-          <p class="kicker">Physics-grounded indicator</p>
-          <h2>We score what aging should change under a constant-current driver.</h2>
-          <div class="two-col">
-            <div>
-              <div class="formula">
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Physics‑grounded indicator</p>
+      <h2>How our algorithm works</h2>
+      <ul>
+        <li>LED side: boost voltage level (F1) & drift (F3) capture increased forward‑voltage as LEDs age.</li>
+        <li>Driver side: non‑zero envelope magnitude (F2a) & drift (F4) capture capacitor wear and ripple widening.</li>
+        <li>Score per circuit: rank features, combine LED and driver sub‑scores symmetrically, add confidence from window count & stale fraction.</li>
+      </ul>
+      <h2>What it tells us</h2>
+      <ul>
+        <li>Relative degradation ranking per fixture.</li>
+        <li>Confidence flags where data is sparse or stale.</li>
+      </ul>
+      <h2>What it cannot tell</h2>
+      <ul>
+        <li>Exact remaining useful life (hours) – no runtime counters.</li>
+        <li>Optical output loss – no photometric data.</li>
+        <li>Absolute failure dates – no labeled failures.</li>
+      </ul>
+    </div>
+  </article>
+</section>
+<section class="slide" id="demo">
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Short demo</p>
+      <h2>Live preview</h2>
+      <p>Open the <a href="outputs/led_dashboard.html" target="_blank">interactive dashboard</a> to explore:
+        <ul>
+          <li>Fixture‑level scores colored by degradation.</li>
+          <li>Hover for boost level, envelope, and stale metrics.</li>
+          <li>Filter by circuit to see the mandatory within‑circuit normalization.</li>
+        </ul>
+      </p>
+    </div>
+  </article>
+</section>
+                  <div class="formula">
                 <div class="formula-row">
                   <strong>LED side</strong>
                   <p>As LEDs age, defect accumulation and series resistance can increase required forward-voltage support. We capture this with boost-voltage level and level drift.</p>
@@ -584,29 +621,22 @@
     </section>
 
     <section class="slide" id="gaps">
-      <article class="slide-card">
-        <div class="content">
-          <p class="kicker">Honest close</p>
-          <div class="close">
-            <div>
-              <p class="big-claim">This is a defensible preventive-maintenance triage signal, not a production-grade failure predictor yet.</p>
-              <div class="links">
-                <a class="button" href="outputs/led_dashboard.html">Open dashboard</a>
-                <a class="button secondary" href="README.md">Read final memo</a>
-              </div>
-            </div>
-            <div class="tile warning">
-              <h3>What closes the gap?</h3>
-              <ul>
-                <li><strong>inputCurrent:</strong> verify the constant-current assumption.</li>
-                <li><strong>LED junction temperature:</strong> enable Arrhenius normalization.</li>
-                <li><strong>Photometric output:</strong> connect electrical stress to delivered light.</li>
-                <li><strong>Runtime counters:</strong> separate calendar time from usage.</li>
-                <li><strong>Failure and maintenance labels:</strong> calibrate scoring and validate outcomes.</li>
-                <li><strong>RF health:</strong> build a true negative-control lane.</li>
-              </ul>
-            </div>
-          </div>
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Honest gap analysis</p>
+      <h2>What we still need for production</h2>
+      <ul>
+        <li><strong>inputCurrent</strong> – verify constant‑current assumption.</li>
+        <li><strong>LED junction temperature</strong> – enable Arrhenius‑based aging model.</li>
+        <li><strong>Photometric output</strong> – link electrical stress to lumen loss.</li>
+        <li><strong>Runtime counters</strong> – separate calendar time from usage.</li>
+        <li><strong>Failure / maintenance labels</strong> – calibrate and validate scores.</li>
+        <li><strong>RF health metrics</strong> – build true negative‑control lane.</li>
+      </ul>
+      <p>With these streams the indicator moves from defensible prototype to production‑ready predictive maintenance.</p>
+    </div>
+  </article>
+</section>
           <div class="grid" style="margin-top:18px">
             <div class="tile value">
               <h3>Value now</h3>
