@@ -75,7 +75,7 @@ function bar(name, count, total) {
 }
 
 function topFixture(row) {
-  return `<div class="fixture-row"><strong>${escapeHtml(row.fixture)}</strong><div>${escapeHtml(row.reason)}<div class="reason-text">${escapeHtml(row.diagnosis)} ${escapeHtml(row.confidence)} confidence, C${escapeHtml(row.circuit)}, ${row.windows} windows</div></div><strong>${Math.round(row.triage * 100)}</strong></div>`;
+  return `<div class="fixture-row"><strong>${escapeHtml(row.fixture)}</strong><div><strong>${escapeHtml(row.reason)}</strong><div class="reason-text">${escapeHtml(row.summary)}</div><div class="top-evidence"><span>LED ${Math.round(row.led * 100)}</span><span>Driver ${Math.round(row.driver * 100)}</span><span>${escapeHtml(row.confidence)} confidence</span><span>C${escapeHtml(row.circuit)}, ${row.windows} windows</span></div></div><strong>${Math.round(row.triage * 100)}</strong></div>`;
 }
 
 function signed(value, unit) {
@@ -105,6 +105,30 @@ function buildDiagnosis({ status, reason, triage, led, driver, confidence, windo
     return `Likely LED-side stress: the LED score is higher than the driver score, meaning boost-voltage level or level drift is the main concern (${scoreText}). ${measurements} ${evidenceText}`;
   }
   return `Likely driver-side instability: the driver score is higher than the LED score, meaning envelope magnitude or envelope drift is the main concern (${scoreText}). ${measurements} ${evidenceText}`;
+}
+
+function buildSummary({ status, reason, boostLevel, envelope, levelDrift, envelopeDrift, spanMonths, staleFrac }) {
+  const trend = [
+    `boost ${formatNumber(boostLevel)} mV`,
+    `envelope ${formatNumber(envelope)} mV`,
+    `level drift ${signed(levelDrift, " mV/month")}`,
+    `envelope drift ${signed(envelopeDrift, " mV/month")}`,
+  ].join("; ");
+  const evidence = `${spanMonths.toFixed(2)} months of batch data; ${Math.round(staleFrac * 100)}% stale events.`;
+
+  if (status === "Working normally") {
+    return `No strong repair signal. Both LED-side voltage and driver envelope stress are low. Evidence: ${trend}. ${evidence}`;
+  }
+  if (status === "Monitor") {
+    return `Some stress is visible, but it is not high enough for the watchlist. Evidence: ${trend}. ${evidence}`;
+  }
+  if (reason === "LED and driver stress") {
+    return `Repair first: both the LED voltage signal and driver envelope signal are high. Evidence: ${trend}. ${evidence}`;
+  }
+  if (reason === "LED voltage drift") {
+    return `Repair candidate: the LED-side voltage signal is the main concern. Evidence: ${trend}. ${evidence}`;
+  }
+  return `Repair candidate: the driver envelope signal is the main concern. Evidence: ${trend}. ${evidence}`;
 }
 
 async function loadRows() {
@@ -171,6 +195,16 @@ async function loadRows() {
         levelDrift,
         envelopeDrift,
       }),
+      summary: buildSummary({
+        status,
+        reason,
+        spanMonths,
+        staleFrac,
+        boostLevel,
+        envelope,
+        levelDrift,
+        envelopeDrift,
+      }),
     };
   });
 }
@@ -204,7 +238,7 @@ function render(rows) {
   <title>LED Maintenance Triage Dashboard</title>
   <style>
     :root{color-scheme:light;--ink:#1b2430;--muted:#5a6675;--line:#d9e0e7;--panel:#fff;--page:#f5f7fa;--repair:#b83232;--watch:#b56b12;--monitor:#256f7f;--healthy:#237047;--accent:#315f9c;--soft-red:#fff0ed;--soft-amber:#fff5df;--soft-blue:#eaf5f8;--soft-green:#eaf7ef}
-    *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.45}header{background:#132235;color:white;padding:26px 32px 22px;border-bottom:5px solid #d7a03a}h1,h2,h3,p{margin:0}h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:0}header p{max-width:1040px;color:#d8e1ec;margin-top:8px;font-size:16px}main{max-width:1400px;margin:0 auto;padding:24px 24px 42px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.pill{border:1px solid rgba(255,255,255,.26);color:#eef5ff;border-radius:999px;padding:7px 11px;font-size:13px;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(20,30,45,.06)}.metric{min-height:150px}.label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase}.value{font-size:44px;font-weight:800;margin-top:6px;line-height:1}.caption{color:var(--muted);margin-top:10px;font-size:14px}.repair{border-top:5px solid var(--repair);background:var(--soft-red)}.watch{border-top:5px solid var(--watch);background:var(--soft-amber)}.monitor{border-top:5px solid var(--monitor);background:var(--soft-blue)}.healthy{border-top:5px solid var(--healthy);background:var(--soft-green)}.section{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:16px;margin-top:16px}h2{font-size:20px;margin-bottom:14px}.bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:190px 1fr 64px;align-items:center;gap:12px;font-size:14px}.bar-track{height:14px;background:#edf1f5;border-radius:999px;overflow:hidden;border:1px solid #dde4eb}.bar-fill{height:100%;background:var(--accent);border-radius:999px}.reason .bar-fill{background:#8f5634}.confidence .bar-fill{background:#5d7899}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:#334155;font-size:12px;text-transform:uppercase;background:#f4f7fa;position:sticky;top:0;z-index:1}.table-wrap{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:8px}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}.status.repair-priority{color:var(--repair);background:#f8d9d3}.status.watchlist{color:var(--watch);background:#f8e4ba}.status.monitoring{color:var(--monitor);background:#d8edf2}.status.working-normally{color:var(--healthy);background:#d6efdf}.score{display:grid;grid-template-columns:52px 90px;align-items:center;gap:8px}.spark{height:8px;background:#e3e8ee;border-radius:999px;overflow:hidden}.spark span{display:block;height:100%;background:#315f9c}.controls{display:grid;grid-template-columns:1.4fr repeat(3,minmax(150px,.5fr));gap:10px;margin-bottom:12px}input,select{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:white;color:var(--ink);font:inherit}.small{color:var(--muted);font-size:13px}.top-list{display:grid;gap:9px}.fixture-row{display:grid;grid-template-columns:98px 1fr 58px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.fixture-row:last-child{border-bottom:0}.reason-text{color:var(--muted);font-size:13px;margin-top:2px}.diagnosis{min-width:360px;max-width:620px}.diagnosis strong{display:block;margin-bottom:4px}.diagnosis-text{color:#334155;font-size:13px;line-height:1.4}.data-chip{display:inline-flex;margin-top:7px;margin-right:6px;padding:3px 7px;border:1px solid #d7dde5;border-radius:999px;background:#f7f9fb;color:#536173;font-size:12px;white-space:nowrap}.note{margin-top:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:5px solid #315f9c;border-radius:8px;color:#394657}.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section,.split{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}@media(max-width:650px){header{padding:22px 18px}main{padding:16px}.grid,.controls{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr;gap:6px}.diagnosis{min-width:280px}th:nth-child(4),td:nth-child(4),th:nth-child(8),td:nth-child(8){display:none}}
+    *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.45}header{background:#132235;color:white;padding:26px 32px 22px;border-bottom:5px solid #d7a03a}h1,h2,h3,p{margin:0}h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:0}header p{max-width:1040px;color:#d8e1ec;margin-top:8px;font-size:16px}main{max-width:1400px;margin:0 auto;padding:24px 24px 42px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.pill{border:1px solid rgba(255,255,255,.26);color:#eef5ff;border-radius:999px;padding:7px 11px;font-size:13px;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:0 1px 2px rgba(20,30,45,.06)}.metric{min-height:150px}.label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase}.value{font-size:44px;font-weight:800;margin-top:6px;line-height:1}.caption{color:var(--muted);margin-top:10px;font-size:14px}.repair{border-top:5px solid var(--repair);background:var(--soft-red)}.watch{border-top:5px solid var(--watch);background:var(--soft-amber)}.monitor{border-top:5px solid var(--monitor);background:var(--soft-blue)}.healthy{border-top:5px solid var(--healthy);background:var(--soft-green)}.section{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:16px;margin-top:16px}h2{font-size:20px;margin-bottom:14px}.bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:190px 1fr 64px;align-items:center;gap:12px;font-size:14px}.bar-track{height:14px;background:#edf1f5;border-radius:999px;overflow:hidden;border:1px solid #dde4eb}.bar-fill{height:100%;background:var(--accent);border-radius:999px}.reason .bar-fill{background:#8f5634}.confidence .bar-fill{background:#5d7899}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:#334155;font-size:12px;text-transform:uppercase;background:#f4f7fa;position:sticky;top:0;z-index:1}.table-wrap{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:8px}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;white-space:nowrap}.status.repair-priority{color:var(--repair);background:#f8d9d3}.status.watchlist{color:var(--watch);background:#f8e4ba}.status.monitoring{color:var(--monitor);background:#d8edf2}.status.working-normally{color:var(--healthy);background:#d6efdf}.score{display:grid;grid-template-columns:52px 90px;align-items:center;gap:8px}.spark{height:8px;background:#e3e8ee;border-radius:999px;overflow:hidden}.spark span{display:block;height:100%;background:#315f9c}.controls{display:grid;grid-template-columns:1.4fr repeat(3,minmax(150px,.5fr));gap:10px;margin-bottom:12px}input,select{width:100%;border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:white;color:var(--ink);font:inherit}.small{color:var(--muted);font-size:13px}.top-list{display:grid;gap:11px}.fixture-row{display:grid;grid-template-columns:98px 1fr 58px;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}.fixture-row:last-child{border-bottom:0}.reason-text{color:var(--muted);font-size:13px;line-height:1.45;margin-top:4px}.top-evidence{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.top-evidence span{display:inline-flex;padding:3px 7px;border:1px solid #d7dde5;border-radius:999px;background:#f7f9fb;color:#536173;font-size:12px;white-space:nowrap}.diagnosis{min-width:360px;max-width:620px}.diagnosis strong{display:block;margin-bottom:4px}.diagnosis-text{color:#334155;font-size:13px;line-height:1.4}.data-chip{display:inline-flex;margin-top:7px;margin-right:6px;padding:3px 7px;border:1px solid #d7dde5;border-radius:999px;background:#f7f9fb;color:#536173;font-size:12px;white-space:nowrap}.note{margin-top:16px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-left:5px solid #315f9c;border-radius:8px;color:#394657}.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section,.split{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}}@media(max-width:650px){header{padding:22px 18px}main{padding:16px}.grid,.controls{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr;gap:6px}.fixture-row{grid-template-columns:1fr 48px}.diagnosis{min-width:280px}th:nth-child(4),td:nth-child(4),th:nth-child(8),td:nth-child(8){display:none}}
   </style>
 </head>
 <body>

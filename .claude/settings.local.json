@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import pandas, numpy, matplotlib; print\\('pd', pandas.__version__, 'np', numpy.__version__, 'mpl', matplotlib.__version__\\)\")",
+      "Bash(python scripts/phase1_inventory.py)",
+      "Bash(python scripts/phase1_quality.py)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "Bash(jupyter nbconvert *)"
+    ]
+  }
+}
