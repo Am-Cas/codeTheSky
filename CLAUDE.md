@@ -63,18 +63,29 @@
 **Primary leg**: `boostVoltage` level and envelope width as the surfacing signal for LED V_f drift under CCR constraint.
 - Load-bearing assumption: CCR loop current is held constant (unverifiable without `inputCurrent`).
 - Directional prediction: aging LEDs → V_f drift → boost voltage rises; envelope widens as one chip ages faster.
-- Scope determined by boostVoltage distributions above.
-
-**Secondary leg**: thermal proxy via internalT − ambientT (if dT diagnostic permits).
-- Scope determined by dT diagnostic results (see above).
-
-**Tertiary leg**: liveness pattern from `stale` and `lastSeen`.
-- Weak proxy for duty cycle and communication health.
 
 **Dropped entirely**:
+- Thermal proxy: dT identically zero across all 170 fixtures including the most active ones (see diagnostic).
 - LED1/LED2 differential aging (sentinel data).
 - Arrhenius anchored on junction T (no real LED T).
 - Alarm/failsafe cross-checks (no operational stream).
+
+## Phase 2 findings — revised feature specification
+
+**Data structure (key finding)**: The export is NOT a continuous time-series. It contains 15–25 distinct batch-reporting events per fixture over 5.35–8.51 months (bimodal: ~half of fleet at each span). Each batch has ~10 hourly readings. Daily binning correctly identifies 15–25 batch-points. F3/F4 threshold revised from 30 to 15 — all 170 fixtures qualify.
+
+**F2 envelope zeros (key finding)**: 75.1% of reporting windows have boostVoltageMax = boostVoltageMin (single-sample window or no inter-batch variation logged). Non-zero windows have meaningful spread (p50 = 193 mV, p90 = 2,697 mV). F2 revised to use non-zero envelope only.
+
+| Feature | Signal | Computation | Unit | Physics |
+|---|---|---|---|---|
+| **F1** | Level | Trimmed mean (5–95%) of boostVoltage per fixture | mV | Sustained V_f elevation under CCR constant-I |
+| **F2a** | Envelope magnitude | Median of non-zero (boostVoltageMax − boostVoltageMin) per fixture | mV | Driver ripple amplitude during active instability |
+| **F2b** | Envelope prevalence | Fraction of windows with envelope > 0 | ratio | Instability frequency across reporting windows |
+| **F3** | Level drift | Theil-Sen slope of per-batch trimmed mean boostVoltage | mV/month | V_f drift rate controlling for commissioning offset |
+| **F4** | Envelope drift | Theil-Sen slope of per-batch non-zero envelope | mV/month | Capacitor degradation rate (leading indicator) |
+
+F1 fleet range: 23 980–24 221 mV (p50 = 24 092 mV). Tight cross-fleet spread — ~240 mV total range.
+F2a non-zero values: p50 = 193 mV, p90 = 2 697 mV (among non-zero windows; 25% of all windows).
 
 ## Phase 4 validation (revised)
 
