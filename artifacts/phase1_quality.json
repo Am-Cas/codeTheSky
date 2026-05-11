@@ -1,0 +1,170 @@
+{
+  "sentinel_audit": {
+    "ambientTemperature": {
+      "n": 27970,
+      "sentinel_value": 65535,
+      "sentinel_frac": 0.006614229531641044,
+      "distinct_values": 50,
+      "p01": 0.0,
+      "p50": 16.0,
+      "p99": 65534.0
+    },
+    "ambientTemperatureMaximum": {
+      "n": 27970,
+      "sentinel_value": 65535,
+      "sentinel_frac": 0.006757239899892742,
+      "distinct_values": 50,
+      "p01": 0.0,
+      "p50": 16.0,
+      "p99": 65534.0
+    },
+    "internalTemperature": {
+      "n": 26897,
+      "sentinel_value": 65535,
+      "sentinel_frac": 0.006878090493363572,
+      "distinct_values": 50,
+      "p01": 0.0,
+      "p50": 15.0,
+      "p99": 65534.0
+    },
+    "internalTemperatureMaximum": {
+      "n": 26897,
+      "sentinel_value": 65535,
+      "sentinel_frac": 0.007026805963490352,
+      "distinct_values": 50,
+      "p01": 0.0,
+      "p50": 15.0,
+      "p99": 65534.0
+    },
+    "led01Temperature": {
+      "n": 2476,
+      "sentinel_value": 25,
+      "sentinel_frac": 1.0,
+      "distinct_values": 1,
+      "p01": 25.0,
+      "p50": 25.0,
+      "p99": 25.0
+    },
+    "led02Temperature": {
+      "n": 2453,
+      "sentinel_value": 25,
+      "sentinel_frac": 1.0,
+      "distinct_values": 1,
+      "p01": 25.0,
+      "p50": 25.0,
+      "p99": 25.0
+    },
+    "heater01Temperature": {
+      "n": 2435,
+      "sentinel_value": -55,
+      "sentinel_frac": 1.0,
+      "distinct_values": 1,
+      "p01": -55.0,
+      "p50": -55.0,
+      "p99": -55.0
+    },
+    "heater02Temperature": {
+      "n": 2449,
+      "sentinel_value": -55,
+      "sentinel_frac": 1.0,
+      "distinct_values": 1,
+      "p01": -55.0,
+      "p50": -55.0,
+      "p99": -55.0
+    }
+  },
+  "usable_distributions": {
+    "boostVoltage": {
+      "n": 42079,
+      "p01": 22013.0,
+      "p10": 23454.0,
+      "p50": 24121.0,
+      "p90": 24546.0,
+      "p99": 24779.0,
+      "min": 17634.0,
+      "max": 25745.0
+    },
+    "boostVoltageMinimum": {
+      "n": 42022,
+      "p01": 21656.0,
+      "p10": 22942.0,
+      "p50": 24073.0,
+      "p90": 24527.0,
+      "p99": 24759.0,
+      "min": 12732.0,
+      "max": 25745.0
+    },
+    "boostVoltageMaximum": {
+      "n": 42022,
+      "p01": 22071.0,
+      "p10": 23589.0,
+      "p50": 24160.0,
+      "p90": 24604.0,
+      "p99": 24924.0,
+      "min": 17634.0,
+      "max": 26644.0
+    },
+    "ambientTemperature": {
+      "n": 27785,
+      "p01": 0.0,
+      "p10": 4.0,
+      "p50": 16.0,
+      "p90": 33.0,
+      "p99": 65533.0,
+      "min": 0.0,
+      "max": 65534.0
+    },
+    "internalTemperature": {
+      "n": 26712,
+      "p01": 0.0,
+      "p10": 3.0,
+      "p50": 14.0,
+      "p90": 33.0,
+      "p99": 65533.0,
+      "min": 0.0,
+      "max": 65534.0
+    },
+    "humidity": {
+      "n": 10148,
+      "p01": 0.0,
+      "p10": 33.0,
+      "p50": 49.0,
+      "p90": 63.0,
+      "p99": 88.0,
+      "min": 0.0,
+      "max": 101.0
+    },
+    "pressure": {
+      "n": 30320,
+      "p01": 791.0,
+      "p10": 817.0,
+      "p50": 861.0,
+      "p90": 911.0,
+      "p99": 950.0,
+      "min": 410.0,
+      "max": 1093.0
+    }
+  },
+  "stale_fraction": {
+    "fleet_mean": 0.7225064960880324,
+    "fleet_median": 0.7459391437414675,
+    "n_fully_stale": 0,
+    "n_never_stale": 0,
+    "p10": 0.5345795370839186,
+    "p90": 0.8351221660506136
+  },
+  "boostvoltage_per_fixture": {
+    "n_fixtures_with_any_bv": 170,
+    "n_fixtures_with_ge_50_samples": 170,
+    "fleet_p50_of_median": 24118.5,
+    "fleet_p50_of_max": 25088.0,
+    "fleet_p90_of_max": 25455.0,
+    "fleet_max_of_max": 25745.0
+  },
+  "thermal_rise": {
+    "n_fixtures_with_both": 170,
+    "fleet_p10_dT": -1.5,
+    "fleet_p50_dT": 0.0,
+    "fleet_p90_dT": 0.0
+  }
+}

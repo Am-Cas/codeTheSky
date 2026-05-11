@@ -1,0 +1,18 @@
+[
+  {
+    "new_metric": "ambientTemperature",
+    "new_present": true,
+    "new_events": 27970,
+    "legacy_metric": "ambientTemperatureLegacyInDegC",
+    "legacy_present": true,
+    "legacy_events": 26897
+  },
+  {
+    "new_metric": "pressure",
+    "new_present": true,
+    "new_events": 30670,
+    "legacy_metric": "pressureLegacyInMbar",
+    "legacy_present": true,
+    "legacy_events": 29476
+  }
+]
