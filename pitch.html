@@ -239,13 +239,11 @@
       background: #f8fbfd;
     }
 
-    .equation code {
+    .equation .math {
       display: block;
-      margin: 8px 0;
+      margin: 12px 0;
       color: var(--navy);
-      font-family: "Courier New", Courier, monospace;
-      font-size: 15px;
-      white-space: normal;
+      font-size: 18px;
     }
 
     .formula-row {
@@ -413,6 +411,9 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });"></script>
 </head>
 <body>
   <header>
@@ -509,23 +510,23 @@
               <div class="equations" aria-label="Physics equations">
                 <div class="equation">
                   <h3>CCR support voltage</h3>
-                  <code>V_boost ~= sum(V_f, LEDs) + V_driver_losses</code>
+                  <div class="math">$$V_{\text{boost}} \approx \sum V_f + V_{\text{driver losses}}$$</div>
                   <p class="subtle">If current is held approximately constant, a higher required LED forward-voltage support appears as elevated boost voltage.</p>
                 </div>
                 <div class="equation">
                   <h3>LED diode relationship</h3>
-                  <code>I = I_s (exp(qV_f / n k T_j) - 1)</code>
+                  <div class="math">$$I = I_s \left( e^{\frac{q V_f}{n k T_j}} - 1 \right)$$</div>
                   <p class="subtle">With current constrained, changes in junction condition, defect density, and series resistance can shift the required forward voltage.</p>
                 </div>
                 <div class="equation">
                   <h3>Driver ripple / envelope</h3>
-                  <code>Delta V_boost = V_max - V_min</code>
-                  <code>Delta V_ripple ~= I_load / (C f_sw) + I_ripple ESR</code>
+                  <div class="math">$$\Delta V_{\text{boost}} = V_{\text{max}} - V_{\text{min}}$$</div>
+                  <div class="math">$$\Delta V_{\text{ripple}} \approx \frac{I_{\text{load}}}{C \cdot f_{sw}} + I_{\text{ripple}} \cdot ESR$$</div>
                   <p class="subtle">Capacitance loss or ESR growth can widen the boost-voltage envelope, which motivates the driver-side score.</p>
                 </div>
                 <div class="equation">
                   <h3>Thermal aging model, not used for scoring</h3>
-                  <code>k_degradation = A exp(-E_a / k T_j)</code>
+                  <div class="math">$$k_{\text{degradation}} = A \cdot e^{-\frac{E_a}{k T_j}}$$</div>
                   <p class="subtle">This is the correct physics for temperature acceleration, but the available data lacks real LED junction temperature, so we do not claim Arrhenius-calibrated degradation.</p>
                 </div>
               </div>
