@@ -1,0 +1,29 @@
+{
+  "gateway_F1_diff": {
+    "C1_median_mV": 24120.16898148148,
+    "C2_median_mV": 24069.538360985418,
+    "diff_mV": -50.630620496063784,
+    "MWU_p": 5.545923472112376e-09,
+    "significant": true
+  },
+  "gateway_sampling": {
+    "C1_n_windows_p50": 25.0,
+    "C1_span_p50_mo": 5.354796320630749,
+    "C2_n_windows_p50": 19.0,
+    "C2_span_p50_mo": 8.508541392904073
+  },
+  "F2b_vs_F1": {
+    "spearman_rho": -0.12106804558853392,
+    "spearman_p": 0.11579330323281535
+  },
+  "F2a_vs_F1": {
+    "spearman_rho": 0.43476461038259834,
+    "spearman_p": 3.139608014034359e-09
+  },
+  "F2b_distribution": {
+    "p50": 0.3060421524113388,
+    "p90": 0.49573170731707306,
+    "n_zero": 0,
+    "n_gt_half": 17
+  }
+}

@@ -80,12 +80,15 @@
 |---|---|---|---|---|
 | **F1** | Level | Trimmed mean (5–95%) of boostVoltage per fixture | mV | Sustained V_f elevation under CCR constant-I |
 | **F2a** | Envelope magnitude | Median of non-zero (boostVoltageMax − boostVoltageMin) per fixture | mV | Driver ripple amplitude during active instability |
-| **F2b** | Envelope prevalence | Fraction of windows with envelope > 0 | ratio | Instability frequency across reporting windows |
+| ~~F2b~~ | ~~Envelope prevalence~~ | **DEMOTED** — rho(F2b, F1)=-0.12 p=0.12, not physics-grounded | — | Firmware artefact, no signal |
 | **F3** | Level drift | Theil-Sen slope of per-batch trimmed mean boostVoltage | mV/month | V_f drift rate controlling for commissioning offset |
 | **F4** | Envelope drift | Theil-Sen slope of per-batch non-zero envelope | mV/month | Capacitor degradation rate (leading indicator) |
 
-F1 fleet range: 23 980–24 221 mV (p50 = 24 092 mV). Tight cross-fleet spread — ~240 mV total range.
-F2a non-zero values: p50 = 193 mV, p90 = 2 697 mV (among non-zero windows; 25% of all windows).
+F1 fleet: C1 p50=24120 mV, C2 p50=24070 mV. Cohen's d=1.01 between circuits.
+F2a vs F1: Spearman rho=0.435 p<0.0001 — real co-variation, keep.
+F2a by circuit: C1 p50=445 mV (few large spikes), C2 p50=145 mV (more frequent smaller events).
+
+**Circuit offset (pre-Phase 3 finding)**: Circuit 2 runs 50 mV lower than Circuit 1 on F1 (MWU p<0.0001, Cohen's d=1.01). Origin unknown (CCR calibration, temperature zone, LED generation). Circuit offset is real, not just sampling. **Mandatory: normalize each feature within-circuit before scoring.** Cross-circuit raw comparison is invalid.
 
 ## Phase 4 validation (revised)
 
