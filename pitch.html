@@ -203,13 +203,26 @@
       background: #f8fbfd;
     }
 
-    .equation h3 { color: var(--navy); }
-
     .equation .math {
       display: block;
-      margin: 8px 0;
+      margin: 12px 0;
       color: var(--navy);
-      font-size: 16px;
+      font-size: 18px;
+    }
+
+    .formula-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 14px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .formula-row strong {
+      color: var(--blue);
     }
 
     .image-panel {
@@ -339,66 +352,39 @@
 
     <!-- SLIDE 1: PROBLEM -->
     <section class="slide" id="problem">
-      <article class="slide-card">
-        <div class="hero">
-          <p class="kicker">Slide 1 — Problem</p>
-          <h1>Airfield lights are still replaced reactively. We need to score degradation before failure.</h1>
-          <p class="lede">ADB Safegate's Axon EQ fixtures stream telemetry into CORTEX, but maintenance still happens after a light fails — at airport scale that means safety risk, runway disruption, and wasted spend.</p>
-        </div>
-        <div class="content">
-          <div class="grid-3">
-            <div class="tile problem">
-              <h3>Safety risk</h3>
-              <p>A failed runway or taxiway light is an immediate operational hazard.</p>
-            </div>
-            <div class="tile problem">
-              <h3>Unplanned downtime</h3>
-              <p>Emergency dispatches and runway closures are far more expensive than scheduled maintenance.</p>
-            </div>
-            <div class="tile problem">
-              <h3>Wasted spend</h3>
-              <p>Replacing healthy fixtures too early is as costly as replacing failed ones too late.</p>
-            </div>
-          </div>
-          <div class="grid-2" style="margin-top:18px">
-            <div class="tile warning">
-              <h3>The data catch</h3>
-              <p>The thing we want to measure — LED degradation — is not directly observable. No photometric output, no hours-run counter, no labeled failures, no Arrhenius-grade junction temperature.</p>
-            </div>
-            <div class="tile value">
-              <h3>Our mission</h3>
-              <p>Build a per-fixture degradation indicator from existing telemetry, defended by LED and driver physics rather than labels.</p>
-            </div>
-          </div>
-        </div>
-      </article>
-    </section>
+  <article class="slide-card">
+    <div class="hero">
+      <p class="kicker">Case Study 2 – LED Degradation</p>
+      <h1>Reactive replacement → Physics‑grounded preventive maintenance</h1>
+      <p>Current reactive maintenance causes safety risk, unplanned downtime, and unnecessary cost.</p>
+    </div>
+    <ul class="pill-row">
+      <li>❌ Reactive: replace lights after failure</li>
+      <li>✅ Goal: score each fixture’s degradation before it fails</li>
+    </ul>
+  </article>
+</section>
 
-    <!-- SLIDE 2: ALGORITHM -->
-    <section class="slide" id="algorithm">
-      <article class="slide-card">
-        <div class="content">
-          <p class="kicker">Slide 2 — Our algorithm</p>
-          <h2>Four physics-grounded features, ranked within circuit, combined into a score.</h2>
-          <div class="two-col">
-            <div>
-              <div class="grid-2">
-                <div class="tile method">
-                  <h3>F1 — Boost level</h3>
-                  <p>Trimmed mean of <em>boostVoltage</em>. Sustained V_f elevation under the CCR constant-current assumption.</p>
-                </div>
-                <div class="tile method">
-                  <h3>F2a — Envelope magnitude</h3>
-                  <p>Median of non-zero (V_max − V_min) per window. Driver ripple amplitude during active instability.</p>
-                </div>
-                <div class="tile method">
-                  <h3>F3 — Level drift</h3>
-                  <p>Theil-Sen slope of per-batch boost level. V_f drift rate, controlling for commissioning offset.</p>
-                </div>
-                <div class="tile method">
-                  <h3>F4 — Envelope drift</h3>
-                  <p>Theil-Sen slope of per-batch envelope. Capacitor degradation rate — leading indicator.</p>
-                </div>
+    <section class="slide" id="data">
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Data reality</p>
+      <h2>What we have</h2>
+      <ul>
+        <li>Electrical telemetry: boostVoltage, stale, lastSeen, limited env (humidity, pressure)</li>
+        <li>No photometric output, no runtime counters, no failure labels</li>
+        <li>Many signals are flat or sentinel‑filled (LED temps, heaters, magnetic)</li>
+      </ul>
+      <h2>What we lack</h2>
+      <ul>
+        <li>Input current (CCR assumption)</li>
+        <li>LED junction temperature</li>
+        <li>Maintenance / failure history</li>
+        <li>Optical performance data</li>
+      </ul>
+    </div>
+  </article>
+</section>
               </div>
 
               <div class="pill-row">
@@ -423,7 +409,105 @@
             <div class="image-panel">
               <figure>
                 <img src="artifacts/f1_level_distribution.png" alt="Boost voltage level distribution">
-                <figcaption>F1: boost-voltage level across all 170 fixtures, after zero filtering.</figcaption>
+                <figcaption>Boost-voltage level is real, measured across all fixtures, and usable after zero filtering.</figcaption>
+              </figure>
+              <figure>
+                <img src="artifacts/dt_diagnostic.png" alt="Thermal differential diagnostic">
+                <figcaption>Thermal proxy was tested, then dropped because it did not provide a trustworthy degradation leg.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="slide" id="indicator">
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Physics‑grounded indicator</p>
+      <h2>How our algorithm works</h2>
+      <ul>
+        <li>LED side: boost voltage level (F1) & drift (F3) capture increased forward‑voltage as LEDs age.</li>
+        <li>Driver side: non‑zero envelope magnitude (F2a) & drift (F4) capture capacitor wear and ripple widening.</li>
+        <li>Score per circuit: rank features, combine LED and driver sub‑scores symmetrically, add confidence from window count & stale fraction.</li>
+      </ul>
+      <h2>What it tells us</h2>
+      <ul>
+        <li>Relative degradation ranking per fixture.</li>
+        <li>Confidence flags where data is sparse or stale.</li>
+      </ul>
+      <h2>What it cannot tell</h2>
+      <ul>
+        <li>Exact remaining useful life (hours) – no runtime counters.</li>
+        <li>Optical output loss – no photometric data.</li>
+        <li>Absolute failure dates – no labeled failures.</li>
+      </ul>
+    </div>
+  </article>
+</section>
+<section class="slide" id="demo">
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Short demo</p>
+      <h2>Live preview</h2>
+      <p>Open the <a href="outputs/led_dashboard.html" target="_blank">interactive dashboard</a> to explore:
+        <ul>
+          <li>Fixture‑level scores colored by degradation.</li>
+          <li>Hover for boost level, envelope, and stale metrics.</li>
+          <li>Filter by circuit to see the mandatory within‑circuit normalization.</li>
+        </ul>
+      </p>
+    </div>
+  </article>
+</section>
+                  <div class="formula">
+                <div class="formula-row">
+                  <strong>LED side</strong>
+                  <p>As LEDs age, defect accumulation and series resistance can increase required forward-voltage support. We capture this with boost-voltage level and level drift.</p>
+                </div>
+                <div class="formula-row">
+                  <strong>Driver side</strong>
+                  <p>Power-chain stress and capacitor wear can widen or worsen boost-voltage envelope behavior. We capture this with non-zero envelope magnitude and envelope drift.</p>
+                </div>
+                <div class="formula-row">
+                  <strong>Scoring</strong>
+                  <p>Rank features within circuit, combine LED and driver sub-scores symmetrically, then expose confidence from window count, span, and stale fraction.</p>
+                </div>
+              </div>
+              <div class="pill-row">
+                <span class="pill">F1: boost level</span>
+                <span class="pill">F2a: non-zero envelope</span>
+                <span class="pill">F3: level drift</span>
+                <span class="pill">F4: envelope drift</span>
+              </div>
+              <div class="equations" aria-label="Physics equations">
+                <div class="equation">
+                  <h3>CCR support voltage</h3>
+                  <div class="math">$$V_{\text{boost}} \approx \sum V_f + V_{\text{driver losses}}$$</div>
+                  <p class="subtle">If current is held approximately constant, a higher required LED forward-voltage support appears as elevated boost voltage.</p>
+                </div>
+                <div class="equation">
+                  <h3>LED diode relationship</h3>
+                  <div class="math">$$I = I_s \left( e^{\frac{q V_f}{n k T_j}} - 1 \right)$$</div>
+                  <p class="subtle">With current constrained, changes in junction condition, defect density, and series resistance can shift the required forward voltage.</p>
+                </div>
+                <div class="equation">
+                  <h3>Driver ripple / envelope</h3>
+                  <div class="math">$$\Delta V_{\text{boost}} = V_{\text{max}} - V_{\text{min}}$$</div>
+                  <div class="math">$$\Delta V_{\text{ripple}} \approx \frac{I_{\text{load}}}{C \cdot f_{sw}} + I_{\text{ripple}} \cdot ESR$$</div>
+                  <p class="subtle">Capacitance loss or ESR growth can widen the boost-voltage envelope, which motivates the driver-side score.</p>
+                </div>
+                <div class="equation">
+                  <h3>Thermal aging model, not used for scoring</h3>
+                  <div class="math">$$k_{\text{degradation}} = A \cdot e^{-\frac{E_a}{k T_j}}$$</div>
+                  <p class="subtle">This is the correct physics for temperature acceleration, but the available data lacks real LED junction temperature, so we do not claim Arrhenius-calibrated degradation.</p>
+                </div>
+              </div>
+            </div>
+            <div class="image-panel">
+              <figure>
+                <img src="artifacts/f2_envelope_distribution.png" alt="Boost voltage envelope distribution">
+                <figcaption>Non-zero envelope windows carry meaningful variation; zero-width windows are handled as a data artifact.</figcaption>
               </figure>
               <figure>
                 <img src="artifacts/pre_phase3_checks.png" alt="Circuit offset diagnostic">
@@ -481,71 +565,26 @@
 
     <!-- SLIDE 4: PRODUCTION DATA GAPS -->
     <section class="slide" id="gaps">
-      <article class="slide-card">
-        <div class="content">
-          <p class="kicker">Slide 4 — From defensible to production-ready</p>
-          <h2>Six telemetry streams close the gap between physics-grounded prototype and predictive maintenance.</h2>
-          <div class="grid-2">
-            <div class="tile warning">
-              <h3>1. inputCurrent</h3>
-              <p>Verifies the CCR constant-current assumption that the entire boost-voltage leg rests on.</p>
-            </div>
-            <div class="tile warning">
-              <h3>2. LED junction temperature</h3>
-              <p>Real T_j (not the 25 °C sentinel) unlocks the Arrhenius acceleration model below.</p>
-            </div>
-            <div class="tile warning">
-              <h3>3. Photometric output</h3>
-              <p>Connects electrical stress to actual lumen loss — the quantity ADB Safegate ultimately cares about.</p>
-            </div>
-            <div class="tile warning">
-              <h3>4. Runtime / hours-run counter</h3>
-              <p>Separates calendar age from usage age; lets the score normalize against duty cycle.</p>
-            </div>
-            <div class="tile warning">
-              <h3>5. Failure &amp; maintenance labels</h3>
-              <p>Calibrate the symmetric LED ⊕ driver weighting (currently an explicit assumption) and validate ranking.</p>
-            </div>
-            <div class="tile warning">
-              <h3>6. RF health metrics</h3>
-              <p>Build a true negative-control lane instead of the current synthetic one based on stale activity.</p>
-            </div>
-          </div>
-          <div class="equations" style="margin-top:18px">
-            <div class="equation">
-              <h3>Arrhenius — the model we cannot run yet</h3>
-              <div class="math">$$k_{\text{degradation}} = A \cdot e^{-\frac{E_a}{k T_j}}$$</div>
-              <p class="subtle">Correct physics for thermal acceleration, but available data has no real junction temperature, so we do not claim Arrhenius-calibrated degradation today.</p>
-            </div>
-          </div>
-          <p class="subtle" style="margin-top:14px">With these streams, the indicator moves from <strong>ranked triage list</strong> to <strong>calibrated remaining-useful-life estimate</strong>.</p>
-        </div>
-      </article>
-    </section>
-
-    <!-- SLIDE 5: DEMO -->
-    <section class="slide" id="demo">
-      <article class="slide-card">
-        <div class="hero">
-          <p class="kicker">Slide 5 — Demo</p>
-          <h1>Live dashboard: 170 fixtures, scored and ranked.</h1>
-          <p class="lede">Per-fixture scores, confidence flags, within-circuit normalization, and the four feature breakdowns — interactive.</p>
-          <div class="links">
-            <a class="button" href="outputs/led_dashboard.html" target="_blank">Open the dashboard</a>
-            <a class="button secondary" href="#problem">Back to start</a>
-          </div>
-        </div>
-        <div class="content">
-          <div class="score-strip">
-            <div class="score"><strong>170</strong>fixtures scored</div>
-            <div class="score"><strong>2</strong>circuits, normalized separately</div>
-            <div class="score"><strong>4</strong>physics features (F1, F2a, F3, F4)</div>
-            <div class="score"><strong>0</strong>failure labels used</div>
-          </div>
-          <div class="grid-3" style="margin-top:18px">
-            <div class="tile method">
-              <h3>Explore</h3>
-              <p>Sort by score, by circuit, or by confidence. Hover a fixture to see its F1–F4 breakdown.</p>
+  <article class="slide-card">
+    <div class="content">
+      <p class="kicker">Honest gap analysis</p>
+      <h2>What we still need for production</h2>
+      <ul>
+        <li><strong>inputCurrent</strong> – verify constant‑current assumption.</li>
+        <li><strong>LED junction temperature</strong> – enable Arrhenius‑based aging model.</li>
+        <li><strong>Photometric output</strong> – link electrical stress to lumen loss.</li>
+        <li><strong>Runtime counters</strong> – separate calendar time from usage.</li>
+        <li><strong>Failure / maintenance labels</strong> – calibrate and validate scores.</li>
+        <li><strong>RF health metrics</strong> – build true negative‑control lane.</li>
+      </ul>
+      <p>With these streams the indicator moves from defensible prototype to production‑ready predictive maintenance.</p>
+    </div>
+  </article>
+</section>
+          <div class="grid" style="margin-top:18px">
+            <div class="tile value">
+              <h3>Value now</h3>
+              <p>A ranked list for maintenance review, with confidence labels and suppression for weak evidence.</p>
             </div>
             <div class="tile method">
               <h3>Drill in</h3>
