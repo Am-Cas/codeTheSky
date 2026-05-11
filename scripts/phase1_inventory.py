@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-CSVS = [ROOT / "yyc_device_1.csv", ROOT / "yyc_device_2.csv"]
+CSVS = [ROOT / "LED_sensor1" / "yyc_device_1.csv", ROOT / "LED_sensor1" / "yyc_device_2.csv"]
 ART = ROOT / "artifacts"
 ART.mkdir(exist_ok=True)
 

@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Data files
+LED_sensor1/
+LED_sensor2/
+*.csv

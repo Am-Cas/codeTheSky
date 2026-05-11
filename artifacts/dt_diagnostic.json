@@ -1,0 +1,26 @@
+{
+  "correlation": {
+    "pearson_r": NaN,
+    "pearson_pval": NaN,
+    "spearman_rho": NaN,
+    "spearman_pval": NaN
+  },
+  "dT_distribution": {
+    "n_fixtures": 170,
+    "dT_median_p01": 0.0,
+    "dT_median_p10": 0.0,
+    "dT_median_p50": 0.0,
+    "dT_median_p90": 0.0,
+    "dT_median_p99": 0.0,
+    "dT_median_min": 0.0,
+    "dT_median_max": 0.0,
+    "dT_std_p50": 0.0
+  },
+  "stale_frac_range": {
+    "min": 0.0691875319366377,
+    "p25": 0.7336729103965363,
+    "p50": 0.7459391437414675,
+    "p75": 0.8305286377942862,
+    "max": 0.8478622987229317
+  }
+}

@@ -16,7 +16,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / "artifacts"
-CSVS = [ROOT / "yyc_device_1.csv", ROOT / "yyc_device_2.csv"]
+CSVS = [ROOT / "LED_sensor1" / "yyc_device_1.csv", ROOT / "LED_sensor1" / "yyc_device_2.csv"]
 
 USE = [
     "timestamp", "device_id", "location_id", "metric", "numeric_value",
